@@ -28,6 +28,6 @@ const ctx = canvas.getContext('2d');
 //}
 
 // Запускаем игру
-gameLoop();
+// gameLoop();
 
 helloCore();
