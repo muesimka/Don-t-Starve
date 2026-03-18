@@ -1,3 +1,3 @@
-function helloAI() {
-    console.log("AI ready");
+function helloUI() {
+    console.log("UI ready");
 }
