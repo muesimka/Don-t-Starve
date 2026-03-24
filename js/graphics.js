@@ -6,3 +6,11 @@ function helloGraphics() {
         console.log("Assets & Graphics ready 🖼️");
     }
 }
+// Функция для рисования ствола дерева
+window.drawTreeTrunk = function(ctx, x, y) {
+    // TODO: Коричневый прямоугольник 10x40
+    // Подсказка: ствол должен быть центрирован по x, поэтому x-5
+    // 👇 Твой код здесь
+    ctx.fillStyle = 'brown';
+    ctx.fillRect(x - 5, y - 20, 10, 40);
+}
