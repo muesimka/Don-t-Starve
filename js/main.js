@@ -2,6 +2,9 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+window.AssetLoader.registerImage('player', 'assets/images/player.png');
+window.AssetLoader.registerImage('tree', 'assets/images/tree.png');
+window.AssetLoader.onComplete = () => console.log('Ready to render!');
 // Игровой цикл
 function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -26,8 +29,5 @@ function gameLoop() {
     
     requestAnimationFrame(gameLoop);
 }
-window.AssetLoader.registerImage('player', 'assets/images/player.png');
-window.AssetLoader.registerImage('tree', 'assets/images/tree.png');
-window.AssetLoader.onComplete = () => console.log('Ready to render!');
 // Запускаем игру
 gameLoop();
