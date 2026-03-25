@@ -34,9 +34,5 @@ function gameLoop() {
     
     requestAnimationFrame(gameLoop);
 }
-
 // Запускаем игру
-
-
 gameLoop();
-
