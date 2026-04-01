@@ -13,8 +13,8 @@ window.GameAssets = {
     sounds: {
         click: 'assets/sounds/click.mp3',
         gather: 'assets/sounds/gather.mp3',
-        hit: 'assets/sounds/click.mp3',
-        ambient: 'assets/sounds/click.mp3',
-        gameover: 'assets/sounds/click.mp3'
+        hit: 'assets/sounds/hit.mp3',
+        ambient: 'assets/sounds/ambient.mp3',
+        gameover: 'assets/sounds/gameover.mp3'
     }
 };
