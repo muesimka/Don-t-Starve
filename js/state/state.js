@@ -148,6 +148,11 @@ window.GameState = {
         this.day++;
         this.healPlayer(5);
         this.addHunger(8);
+        if(window.SoundManager) {
+            SoundManager.play('day_change');
+        }
+        console.log(`🌞 Day ${this.day}`);
+}
     },
     
     // Удаление дерева
