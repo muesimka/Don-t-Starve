@@ -1,104 +1,74 @@
-window.UI = {
-    canvas: null,
-    ctx: null,
+// UI функции
+window.drawUIPanel = function(ctx, health, hunger, wood, day) {
+    ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+    ctx.fillRect(0, 0, 800, 55);
     
-    init: function(canvas, ctx) {
-        this.canvas = canvas;
-        this.ctx = ctx;
-        this.setupEvents();
-    },
+    if(window.GameRenderer) {
+        GameRenderer.drawUIcon('heart', 10, 12, health);
+        GameRenderer.drawUIcon('meat', 100, 12, hunger);
+    }
     
-    setupEvents: function() {
-        // Клик левой кнопкой - перемещение
-        this.canvas.addEventListener('click', (e) => {
-            let rect = this.canvas.getBoundingClientRect();
-            let x = (e.clientX - rect.left) * (800 / rect.width);
-            let y = (e.clientY - rect.top) * (600 / rect.height);
-            
-            // Проверяем кнопки UI
-            if(x > 20 && x < 110 && y > 545 && y < 580) {
-                if(window.Core) window.Core.gather();
-            } else if(x > 120 && x < 210 && y > 545 && y < 580) {
-                if(window.Core) window.Core.attack();
-            } else if(x > 690 && x < 780 && y > 545 && y < 580) {
-                if(window.Core) window.Core.restart();
-            } else {
-                // Перемещение персонажа
-                if(window.Core) window.Core.setPlayerTarget(x, y);
-            }
-        });
-        
-        // Правая кнопка - атака ближайшего врага
-        this.canvas.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            if(window.Core) window.Core.attackNearest();
-            return false;
-        });
-        
-        // Клавиша E - сбор ресурсов
-        window.addEventListener('keydown', (e) => {
-            if(e.key === 'e' || e.key === 'E') {
-                e.preventDefault();
-                if(window.Core) window.Core.gather();
-            }
-            if(e.key === 'r' || e.key === 'R') {
-                e.preventDefault();
-                if(window.Core) window.Core.restart();
-            }
-        });
-    },
+    ctx.fillStyle = "#ffde9c";
+    ctx.font = "bold 18px monospace";
+    ctx.fillText("🪵", 210, 35);
+    ctx.fillText(wood, 235, 35);
     
-    render: function(state) {
-        let ctx = this.ctx;
-        
-        Assets.drawGround(ctx);
-        
-        for(let tree of state.trees) {
-            Assets.drawTree(ctx, tree.x, tree.y, tree.wood);
-        }
-        
-        for(let berry of state.berries) {
-            Assets.drawBerry(ctx, berry.x, berry.y, berry.count);
-        }
-        
-        for(let enemy of state.enemies) {
-            Assets.drawEnemy(ctx, enemy.x, enemy.y, enemy.hp);
-        }
-        
-        Assets.drawPlayer(ctx, state.player.x, state.player.y, state.player.hp);
-        Assets.drawUI(ctx, state.player, state.day);
-        
-        // Индикатор цели
-        if(state.player.targetX !== null) {
-            ctx.beginPath();
-            ctx.arc(state.player.targetX, state.player.targetY, 8, 0, Math.PI * 2);
-            ctx.strokeStyle = "#ffaa44";
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(state.player.targetX - 12, state.player.targetY);
-            ctx.lineTo(state.player.targetX + 12, state.player.targetY);
-            ctx.moveTo(state.player.targetX, state.player.targetY - 12);
-            ctx.lineTo(state.player.targetX, state.player.targetY + 12);
-            ctx.stroke();
-        }
-        
-        let logs = QA.getLastLogs();
-        ctx.fillStyle = "#ddddaa";
-        ctx.font = "9px monospace";
-        for(let i = 0; i < Math.min(3, logs.length); i++) {
-            ctx.fillText(logs[i].substring(0, 45), 10, 590 - (i * 12));
-        }
-        
-        if(!state.gameActive) {
-            ctx.fillStyle = "rgba(0,0,0,0.8)";
-            ctx.fillRect(0, 0, 800, 600);
-            ctx.fillStyle = "#ff6666";
-            ctx.font = "bold 32px monospace";
-            ctx.fillText("GAME OVER", 310, 300);
-            ctx.font = "14px monospace";
-            ctx.fillStyle = "#fff";
-            ctx.fillText("Press RESTART or R", 340, 360);
-        }
+    ctx.fillStyle = "#ffaa66";
+    ctx.fillText("🌞 Day " + day, 700, 35);
+};
+
+window.drawUIButtons = function(ctx) {
+    ctx.fillStyle = "#4a3a2a";
+    ctx.fillRect(20, 545, 90, 35);
+    ctx.fillRect(120, 545, 90, 35);
+    ctx.fillRect(690, 545, 90, 35);
+    
+    ctx.fillStyle = "#ffde9c";
+    ctx.font = "bold 14px monospace";
+    ctx.fillText("GATHER", 35, 568);
+    ctx.fillText("ATTACK", 142, 568);
+    ctx.fillText("RESTART", 700, 568);
+};
+
+window.drawMinimap = function(ctx, camera) {
+    const minimapCanvas = document.getElementById('minimap');
+    if(!minimapCanvas) return;
+    
+    const mCtx = minimapCanvas.getContext('2d');
+    const scaleX = 150 / GameConfig.WORLD_WIDTH;
+    const scaleY = 150 / GameConfig.WORLD_HEIGHT;
+    
+    mCtx.fillStyle = "#2d5a2c";
+    mCtx.fillRect(0, 0, 150, 150);
+    
+    mCtx.fillStyle = "#5d3a1a";
+    for(let tree of GameState.world.trees) {
+        mCtx.fillRect(tree.x * scaleX, tree.y * scaleY, 2, 2);
+    }
+    
+    mCtx.fillStyle = "#cc3366";
+    for(let berry of GameState.world.berries) {
+        mCtx.fillRect(berry.x * scaleX, berry.y * scaleY, 2, 2);
+    }
+    
+    mCtx.fillStyle = "#aa3333";
+    for(let enemy of GameState.enemies) {
+        mCtx.fillRect(enemy.x * scaleX, enemy.y * scaleY, 3, 3);
+    }
+    
+    mCtx.fillStyle = "#ffcc44";
+    mCtx.beginPath();
+    mCtx.arc(GameState.player.x * scaleX, GameState.player.y * scaleY, 4, 0, Math.PI * 2);
+    mCtx.fill();
+    
+    if(camera) {
+        const viewX = camera.x * scaleX;
+        const viewY = camera.y * scaleY;
+        const viewW = 800 * scaleX;
+        const viewH = 600 * scaleY;
+        mCtx.strokeStyle = "white";
+        mCtx.strokeRect(viewX, viewY, viewW, viewH);
     }
 };
+
+console.log("🖼️ UI ready");

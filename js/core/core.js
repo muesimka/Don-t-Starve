@@ -1,132 +1,226 @@
-window.Core = {
-    state: null,
+// Основной игровой цикл
+window.CoreGame = {
+    lastTimestamp: 0,
+    gameActive: true,
+    lastFrameTime: 0,
     
-    init: function() {
-        this.state = GameState;
-        this.state.init();
-        QA.log("Core initialized - Click to move, Right-click/E to attack/gather");
+    start: function() {
+        this.lastTimestamp = 0;
+        console.log("🎮 Game loop started");
+        
+        // Запускаем фоновую музыку
+        setTimeout(() => {
+            SoundManager.playMusic('ambient', 0.3);
+        }, 1000);
     },
     
-    setPlayerTarget: function(x, y) {
-        this.state.setPlayerTarget(x, y);
-    },
-    
-    gather: function() {
-        if(!this.state.gameActive) return;
-        
-        let player = this.state.player;
-        let nearestTree = AI.findNearestResource(this.state, 'tree', CONFIG.GATHER_RADIUS);
-        let nearestBerry = AI.findNearestResource(this.state, 'berry', CONFIG.GATHER_RADIUS);
-        
-        let treeDist = nearestTree ? Math.hypot(player.x - nearestTree.x, player.y - nearestTree.y) : Infinity;
-        let berryDist = nearestBerry ? Math.hypot(player.x - nearestBerry.x, player.y - nearestBerry.y) : Infinity;
-        
-        if(nearestTree && treeDist <= berryDist) {
-            for(let i = 0; i < this.state.trees.length; i++) {
-                if(this.state.trees[i] === nearestTree) {
-                    let gain = Math.min(nearestTree.wood, 6);
-                    nearestTree.wood -= gain;
-                    this.state.addWood(gain);
-                    Sound.play('gather');
-                    QA.log(`Gathered ${gain} wood`);
-                    if(nearestTree.wood <= 0) this.state.removeTree(i);
-                    return;
-                }
-            }
-        } else if(nearestBerry && berryDist < treeDist) {
-            for(let i = 0; i < this.state.berries.length; i++) {
-                if(this.state.berries[i] === nearestBerry) {
-                    let gain = Math.min(nearestBerry.count, 4);
-                    nearestBerry.count -= gain;
-                    this.state.addHunger(gain * 6);
-                    Sound.play('gather');
-                    QA.log(`Ate ${gain} berries`);
-                    if(nearestBerry.count <= 0) this.state.removeBerry(i);
-                    return;
-                }
-            }
-        } else {
-            QA.log("Nothing to gather nearby");
+    gameLoop: function(currentTime) {
+        if(this.lastTimestamp === 0) {
+            this.lastTimestamp = currentTime;
+            requestAnimationFrame((t) => this.gameLoop(t));
+            return;
         }
-    },
-    
-    attack: function() {
-        if(!this.state.gameActive) return;
         
-        let player = this.state.player;
-        let nearest = AI.findNearestEnemy(this.state, CONFIG.ATTACK_RADIUS);
-        
-        if(nearest) {
-            for(let i = 0; i < this.state.enemies.length; i++) {
-                if(this.state.enemies[i] === nearest) {
-                    nearest.hp -= CONFIG.PLAYER_DAMAGE;
-                    Sound.play('click');
-                    QA.log(`Enemy hit! HP: ${Math.max(0, nearest.hp)}`);
-                    
-                    if(nearest.hp <= 0) {
-                        this.state.removeEnemy(i);
-                        Sound.play('hit');
-                        QA.log("Enemy defeated!");
-                    }
-                    return;
-                }
-            }
-        } else {
-            QA.log("No enemy nearby");
+        let delta = Math.min(0.033, (currentTime - this.lastTimestamp) / 1000);
+        if(delta > 0.01) {
+            this.update(delta);
         }
-    },
-    
-    attackNearest: function() {
-        this.attack();
+        this.lastTimestamp = currentTime;
+        this.render();
+        
+        requestAnimationFrame((t) => this.gameLoop(t));
     },
     
     update: function(delta) {
-        if(!this.state.gameActive) return;
+        if(!GameState.gameActive) return;
         
-        this.state.movePlayer(delta);
+        // Движение игрока
+        GameState.movePlayer(delta, GameBalance.PLAYER_SPEED);
         
-        this.state.player.hunger -= delta * CONFIG.HUNGER_RATE;
-        if(this.state.player.hunger <= 0) {
-            this.state.damagePlayer(delta * 5);
-            this.state.player.hunger = 0;
+        // Голод
+        GameState.player.hunger -= delta * GameBalance.HUNGER_DRAIN_RATE;
+        if(GameState.player.hunger <= 0) {
+            GameState.damagePlayer(delta * 5);
+            GameState.player.hunger = 0;
         }
         
-        this.state.dayTimer += delta;
-        if(this.state.dayTimer >= CONFIG.DAY_DURATION) {
-            this.state.dayTimer = 0;
-            this.state.nextDay();
-            QA.log(`Day ${this.state.day}`);
+        // Дневной цикл
+        GameState.dayTimer += delta;
+        if(GameState.dayTimer >= GameBalance.DAY_DURATION) {
+            GameState.dayTimer = 0;
+            GameState.nextDay();
         }
         
-        this.state.spawnTimer += delta;
-        if(this.state.spawnTimer >= 10 && this.state.enemies.length < 3) {
-            this.state.spawnTimer = 0;
-            let side = Math.random() > 0.5 ? 50 : 750;
-            let y = 150 + Math.random() * 350;
-            this.state.addEnemy(side, y, 40 + Math.random() * 15);
-            QA.log("Enemy appeared");
+        // Спавн врагов
+        GameState.spawnTimer += delta;
+        if(GameState.spawnTimer >= GameBalance.ENEMY_SPAWN_DELAY && 
+           GameState.enemies.length < GameBalance.MAX_ENEMIES) {
+            GameState.spawnTimer = 0;
+            GameState.spawnEnemy();
         }
         
-        this.state.enemies = AI.updateEnemies(this.state, delta);
+        // Обновление AI
+        GameAI.updateEnemies(delta, GameState.player.x, GameState.player.y);
         
-        let attacker = AI.checkAttack(this.state);
+        // Проверка атаки врагов
+        const attacker = GameAI.checkAttack(GameState.player.x, GameState.player.y);
         if(attacker) {
-            this.state.damagePlayer(delta * 10);
+            GameState.damagePlayer(delta * GameBalance.ENEMY_DAMAGE);
         }
         
-        if(this.state.player.hp <= 0) {
-            this.state.gameActive = false;
-            QA.log("GAME OVER");
+        // Обновление камеры
+        if(window.GameCamera) {
+            GameCamera.update(GameState.player.x, GameState.player.y, delta);
         }
+        
+        // Обновление эффектов
+        if(window.EffectsManager) {
+            EffectsManager.update(delta);
+        }
+        
+        // Проверка смерти
+        if(GameState.player.hp <= 0) {
+            GameState.gameActive = false;
+            SoundManager.play('gameover');
+            SoundManager.stopMusic();
+        }
+    },
+    
+    gather: function() {
+        if(!GameState.gameActive) return false;
+        
+        // Сбор дерева
+        const trees = GameState.getTreesInRange(GameState.player.x, GameState.player.y, GameBalance.GATHER_RADIUS);
+        if(trees.length > 0) {
+            const gain = Math.min(trees[0].wood, GameBalance.GATHER_WOOD_AMOUNT);
+            trees[0].wood -= gain;
+            GameState.addWood(gain);
+            if(window.EffectsManager) {
+                EffectsManager.addPickupEffect(trees[0].x, trees[0].y);
+            }
+            
+            if(trees[0].wood <= 0) {
+                GameState.removeTree(trees[0]);
+            }
+            SoundManager.play('gather');
+            return true;
+        }
+        
+        // Сбор ягод
+        const berries = GameState.getBerriesInRange(GameState.player.x, GameState.player.y, GameBalance.GATHER_RADIUS);
+        if(berries.length > 0) {
+            const gain = Math.min(berries[0].count, GameBalance.GATHER_BERRY_AMOUNT);
+            berries[0].count -= gain;
+            GameState.addHunger(gain * GameBalance.BERRY_HUNGER_RESTORE);
+            if(window.EffectsManager) {
+                EffectsManager.addPickupEffect(berries[0].x, berries[0].y);
+            }
+            
+            if(berries[0].count <= 0) {
+                GameState.removeBerry(berries[0]);
+            }
+            SoundManager.play('gather');
+            return true;
+        }
+        
+        return false;
+    },
+    
+    attack: function() {
+        if(!GameState.gameActive) return false;
+        
+        const nearest = GameAI.findNearestEnemy(
+            GameState.player.x, 
+            GameState.player.y, 
+            GameBalance.ATTACK_RADIUS
+        );
+        
+        if(nearest) {
+            const defeated = GameAI.damageEnemy(nearest, GameBalance.PLAYER_DAMAGE);
+            if(window.EffectsManager) {
+                EffectsManager.addHitEffect(nearest.x, nearest.y);
+            }
+            SoundManager.play('hit');
+            
+            if(defeated) {
+                console.log("💀 Enemy defeated!");
+            }
+            return true;
+        }
+        
+        return false;
     },
     
     restart: function() {
-        this.state.reset();
-        QA.log("Game restarted");
-        Sound.play('click');
+        GameState.reset();
+        GameAI.clearEnemies();
+        if(window.GameCamera) GameCamera.reset();
+        if(window.EffectsManager) EffectsManager.effects = [];
+        SoundManager.playMusic('ambient', 0.3);
+        console.log("🔄 Game restarted!");
     },
     
-    getState: function() {
-        return this.state.getState();
+    render: function() {
+        if(!GameRenderer.ctx || !GameState) return;
+        
+        const ctx = GameRenderer.ctx;
+        
+        // Очистка и фон
+        GameRenderer.drawGround();
+        
+        // Деревья
+        for(let tree of GameState.world.trees) {
+            GameRenderer.drawTree(tree.x, tree.y);
+        }
+        
+        // Ягоды
+        for(let berry of GameState.world.berries) {
+            GameRenderer.drawBerry(berry.x, berry.y, berry.count);
+        }
+        
+        // Враги
+        for(let enemy of GameState.enemies) {
+            GameRenderer.drawEnemy(enemy.x, enemy.y, enemy.hp, enemy.maxHp, enemy.type);
+        }
+        
+        // Игрок
+        GameRenderer.drawPlayer(GameState.player.x, GameState.player.y, GameState.player.hp);
+        
+        // Эффекты
+        if(window.EffectsManager && GameCamera) {
+            EffectsManager.draw(ctx, GameCamera);
+        }
+        
+        // UI
+        if(window.drawUIPanel) {
+            drawUIPanel(ctx, 
+                GameState.player.hp, 
+                GameState.player.hunger, 
+                GameState.player.wood, 
+                GameState.day
+            );
+        }
+        
+        if(window.drawUIButtons) {
+            drawUIButtons(ctx);
+        }
+        
+        if(window.drawMinimap && GameCamera) {
+            drawMinimap(ctx, GameCamera);
+        }
+        
+        // Game Over экран
+        if(!GameState.gameActive) {
+            ctx.fillStyle = "rgba(0,0,0,0.8)";
+            ctx.fillRect(0, 0, 800, 600);
+            ctx.fillStyle = "#ff6666";
+            ctx.font = "bold 32px monospace";
+            ctx.fillText("GAME OVER", 310, 300);
+            ctx.font = "14px monospace";
+            ctx.fillStyle = "#fff";
+            ctx.fillText("Press RESTART or R", 340, 360);
+        }
     }
 };
+
+console.log("⚙️ Core ready");
