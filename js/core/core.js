@@ -103,6 +103,10 @@ window.CoreGame = {
     if(trees.length > 0) {
         const gain = Math.min(trees[0].wood, GameBalance.GATHER_WOOD_AMOUNT);
         trees[0].wood -= gain;
+        // После строки с trees[0].wood -= gain; добавить:
+    if(window.treeShakeEffects) {
+        window.treeShakeEffects[`${trees[0].x},${trees[0].y}`] = { intensity: 5 };
+}
         GameState.addWood(gain);
         if(window.EffectsManager) {
             EffectsManager.addPickupEffect(trees[0].x, trees[0].y);
