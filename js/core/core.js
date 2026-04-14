@@ -15,10 +15,11 @@ window.CoreGame = {
         this.lastTimestamp = 0;
         console.log("🎮 Game loop started");
 
-        autoGatherResources: function() {
-    if(!GameState.gameActive) return;
+    autoGatherResources: function() {
+        if(!GameState.gameActive) return;
     
-    const autoRadius = 25;  // Радиус автоподбора
+        const autoRadius = 25;  // Радиус автоподбора
+    }
     
     // Автосбор деревьев
     getTreesInRange: function(x, y, radius) {
