@@ -164,4 +164,26 @@ class CoreGame {
     
         return false;
     }
+
+    // Добавьте в класс CoreGame
+    restart() {
+    // Сбрасываем состояние игры
+        this.gameState.reset();
+        this.gameAI.clearEnemies();
+    
+    // Сбрасываем камеру
+        if (this.camera) {
+            this.camera.reset(this.gameState.player.x, this.gameState.player.y);
+        }
+    
+    // Очищаем эффекты
+        if (this.effectsManager) {
+            this.effectsManager.effects = [];
+        }
+    
+    // Запускаем музыку заново
+        this.soundManager.playMusic('ambient', 0.3);
+    
+        console.log("🔄 Game restarted!");
+    }
 }
