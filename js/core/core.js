@@ -134,5 +134,34 @@ class CoreGame {
     
         return false;
     }
+    // Добавьте в класс CoreGame
+    attack() {
+        if (!this.gameState.gameActive) return false;
     
+        // Поиск ближайшего врага
+        const nearest = this.gameAI.findNearestEnemy(
+            this.gameState.player.x, 
+            this.gameState.player.y, 
+            this.gameBalance.ATTACK_RADIUS
+        );
+    
+        if (nearest) {
+            // Наносим урон
+            const defeated = this.gameAI.damageEnemy(nearest, this.gameBalance.PLAYER_DAMAGE);
+        
+            // Визуальный эффект удара
+            if (this.effectsManager) {
+                this.effectsManager.addHitEffect(nearest.x, nearest.y);
+            }
+        
+            this.soundManager.play('hit');
+        
+            if (defeated) {
+                console.log("💀 Enemy defeated!");
+            }
+            return true;
+        }
+    
+        return false;
+    }
 }
