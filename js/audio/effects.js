@@ -18,6 +18,19 @@ class EffectsManager {
         }
     }
 
+    addStonePickupEffect(x, y) {
+        this.effects.push({
+            x: x,
+            y: y,
+            lifetime: 0.4,
+            maxLifetime: 0.4,
+            type: 'stonePickup' // новый тип
+        });
+        if (window.soundManager) {
+            window.soundManager.play('gather');
+        }
+    }
+
     addHitEffect(x, y) {
         this.effects.push({
             x: x,
@@ -40,6 +53,7 @@ class EffectsManager {
             }
         }
     }
+    
 
     draw(ctx, camera) {
         for (let e of this.effects) {
@@ -58,7 +72,9 @@ class EffectsManager {
 
             // Выбор цвета
             if (e.type === 'pickup') {
-                ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`;   // золотой
+                ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`; // золото
+            } else if (e.type === 'stonePickup') {
+                ctx.fillStyle = `rgba(170, 170, 170, ${alpha})`; // серый #aaaaaa
             } else {
                 ctx.fillStyle = `rgba(255, 100, 100, ${alpha})`; // красный
             }
