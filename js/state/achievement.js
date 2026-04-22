@@ -8,6 +8,7 @@ class AchievementSystem {
         };
         this.notification = null;
         this.notifTimer = 0;
+        this.panelOpen = false;
     }
      addWood(amount) {
         if (!this.achievements.wood.done) {
@@ -48,6 +49,39 @@ class AchievementSystem {
             ctx.fillStyle = "#ffd700";
             ctx.font = "bold 14px monospace";
             ctx.fillText(this.notification, 220, 125);
+        }
+    }
+    
+    togglePanel() {
+        this.panelOpen = !this.panelOpen;
+        }
+    
+        drawPanel(ctx) {
+        if (!this.panelOpen) return;
+    
+        // Фон окна
+        ctx.fillStyle = "rgba(0,0,0,0.85)";
+        ctx.fillRect(200, 100, 400, 250);
+    
+        // Заголовок
+        ctx.fillStyle = "#ffd700";
+        ctx.font = "bold 18px monospace";
+        ctx.fillText("ACHIEVEMENTS", 300, 130);
+    
+        // Список достижений
+        ctx.font = "14px monospace";
+        let y = 160;
+    
+        for (const key in this.achievements) {
+            const ach = this.achievements[key];
+    
+            // Цвет: выполнено / нет
+            ctx.fillStyle = ach.done ? "#66ff66" : "white";
+    
+            const text = `${ach.name}: ${ach.current}/${ach.required}`;
+            ctx.fillText(text, 220, y);
+    
+            y += 30;
         }
     }
 }
